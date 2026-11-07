@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Front Page Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
+
+    :root {
+      color-scheme: light;
+      --ink: #4b3540;
+      --muted: #8c737e;
+      --pink: #d85d83;
+      --pink-dark: #b84167;
+      --pink-soft: #fff0f4;
+      --line: #f0d7df;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      padding: 38px 18px 56px;
+      background-color: #fff8fa;
+      background-image: radial-gradient(#f3dfe6 0.8px, transparent 0.8px);
+      background-size: 20px 20px;
+      color: var(--ink);
+      font-family: "Nunito", "Trebuchet MS", sans-serif;
+    }
+
+    .app-shell {
+      width: min(920px, 100%);
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .kicker {
+      margin: 0 0 6px;
+      color: var(--pink-dark);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      font-weight: 800;
+    }
+
+    .form-panel {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 8px 24px rgba(128, 69, 89, 0.07);
+    }
+
+    .field {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 6px;
+      text-align: left;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    select,
+    input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      outline: none;
+      background: #fffafb;
+      color: #000;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    select:focus,
+    input:focus {
+      border-color: var(--pink);
+      box-shadow: 0 0 0 3px rgba(216, 93, 131, 0.13);
+    }
+
+    .actions {
+      display: flex;
+      grid-column: 1 / -1;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 2px;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 9px 18px;
+      border: 1px solid var(--pink);
+      border-radius: 6px;
+      background: var(--pink);
+      color: white;
+      cursor: pointer;
+      font: inherit;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    button:hover {
+      border-color: var(--pink-dark);
+      background: var(--pink-dark);
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(216, 93, 131, 0.28);
+      outline-offset: 2px;
+    }
+
+    button.secondary {
+      background: white;
+      color: var(--pink-dark);
+    }
+
+    button.secondary:hover {
+      background: var(--pink-soft);
+    }
+
+    #page {
+      position: relative;
+      width: 794px;   /* A4 width */
+      height: 1123px; /* A4 height */
+      margin: 0;
+      display: none;
+      transform-origin: top left;
+    }
+
+    #page img {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .text {
+      position: absolute;
+      font-size: 28px;
+      font-weight: bold;
+      font-family: inherit;
+      color: #000;
+    }
+
+    .preview-section {
+      margin-top: 28px;
+    }
+
+    .preview-heading {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .preview-heading h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    #preview-status {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview-viewport {
+      display: flex;
+      justify-content: center;
+      overflow: hidden;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .preview-canvas {
+      position: relative;
+      flex: 0 0 auto;
+      width: 794px;
+      height: 0;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 26px 12px 40px;
+      }
+
+      .form-panel {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .actions {
+        justify-content: stretch;
+      }
+
+      .actions button {
+        flex: 1;
+        padding-right: 10px;
+        padding-left: 10px;
+      }
+
+      .preview-heading {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .form-panel {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app-shell">
+  <header class="page-header">
+    <p class="kicker">A little cover-page studio</p>
+    <h1>Front Page Maker</h1>
+  </header>
+
+  <main>
+    <section class="form-panel" aria-label="Front page details">
+      <div class="field">
+        <label for="labPage">Lab</label>
+        <select id="labPage" aria-label="Select lab page">
+          <option value="wt">WT LAB</option>
+          <option value="daa">DAA LAB</option>
+          <option value="dbms">DBMS LAB</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" placeholder="Enter name">
+      </div>
+      <div class="field">
+        <label for="roll">Roll No.</label>
+        <input id="roll" placeholder="Enter roll number">
+      </div>
+      <div class="field">
+        <label for="section">Section</label>
+        <input id="section" placeholder="Enter section">
+      </div>
+      <div class="actions">
+        <button class="secondary" type="button" onclick="loadPreview()">Preview</button>
+        <button type="button" onclick="generatePDF()">Download PDF</button>
+      </div>
+    </section>
+
+    <section class="preview-section" aria-label="Front page preview">
+      <div class="preview-heading">
+        <h2>Preview</h2>
+        <p id="preview-status">Enter your details, then click Preview.</p>
+      </div>
+      <div class="preview-viewport">
+        <div class="preview-canvas" id="preview-canvas">
+          <!-- TEMPLATE AREA -->
+          <div id="page">
+            <img id="template-image" alt="">
+
+            <!-- TEXT POSITIONS (adjust these) -->
+            <!-- NAME -->
+            <div id="t_name" class="text" style="top:619px; left:210px;"></div>
+            <!-- ROLL NO -->
+            <div id="t_roll" class="text" style="top:667px; left:210px;"></div>
+            <!-- SECTION -->
+            <div id="t_section" class="text" style="top:715px; left:210px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const templates = {
+  wt: "wt-template.jpg",
+  daa: "daa-template.jpg",
+  dbms: "dbms-template.jpg"
+};
+const labPage = document.getElementById("labPage");
+const image = document.getElementById("template-image");
+const page = document.getElementById("page");
+const previewCanvas = document.getElementById("preview-canvas");
+const previewViewport = document.querySelector(".preview-viewport");
+const previewStatus = document.getElementById("preview-status");
+let loadedTemplate = "";
+let previewScale = 1;
+
+function resizePreview() {
+  const availableWidth = Math.max(1, previewViewport.clientWidth - 28);
+  previewScale = Math.min(1, availableWidth / 794);
+  previewCanvas.style.width = 794 * previewScale + "px";
+  previewCanvas.style.height = page.style.display === "block" ? 1123 * previewScale + "px" : "0px";
+  page.style.transform = "scale(" + previewScale + ")";
+}
+
+function updatePreviewText() {
+  document.getElementById("t_name").innerText =
+    document.getElementById("name").value;
+  document.getElementById("t_roll").innerText =
+    document.getElementById("roll").value;
+  document.getElementById("t_section").innerText =
+    document.getElementById("section").value;
+}
+
+function loadPreview() {
+  const template = templates[labPage.value];
+  loadedTemplate = "";
+  page.style.display = "none";
+  resizePreview();
+  previewStatus.innerText = "Loading " + template + "...";
+
+  image.onload = () => {
+    image.onload = null;
+    image.onerror = null;
+    loadedTemplate = template;
+    updatePreviewText();
+    page.style.display = "block";
+    resizePreview();
+    previewStatus.innerText = "";
+  };
+  image.onerror = () => {
+    image.onload = null;
+    image.onerror = null;
+    page.style.display = "none";
+    resizePreview();
+    previewStatus.innerText = "Preview unavailable. Put " + template + " in the same folder as index.html.";
+  };
+  image.src = template;
+
+  if (image.complete) {
+    const handler = image.naturalWidth > 0 ? image.onload : image.onerror;
+    if (handler) handler();
+  }
+}
+
+function generatePDF() {
+  updatePreviewText();
+
+  if (loadedTemplate !== templates[labPage.value] || !image.complete || image.naturalWidth === 0) {
+    previewStatus.innerText = "Click Preview to load the selected lab page before downloading.";
+    return;
+  }
+
+  const originalTransform = page.style.transform;
+  const originalCanvasWidth = previewCanvas.style.width;
+  const originalCanvasHeight = previewCanvas.style.height;
+  const originalOverflow = previewViewport.style.overflow;
+  page.style.transform = "none";
+  previewCanvas.style.width = "794px";
+  previewCanvas.style.height = "1123px";
+  previewViewport.style.overflow = "visible";
+
+  const restorePreview = () => {
+    page.style.transform = originalTransform;
+    previewCanvas.style.width = originalCanvasWidth;
+    previewCanvas.style.height = originalCanvasHeight;
+    previewViewport.style.overflow = originalOverflow;
+  };
+  html2pdf().from(page).save(
+    document.getElementById("name").value + "_" + labPage.value + "_frontpage.pdf"
+  ).then(restorePreview, restorePreview);
+}
+
+document.getElementById("name").addEventListener("input", updatePreviewText);
+document.getElementById("roll").addEventListener("input", updatePreviewText);
+document.getElementById("section").addEventListener("input", updatePreviewText);
+window.addEventListener("resize", resizePreview);
+resizePreview();
+previewStatus.innerText = "Enter your details, then click Preview.";
+</script>
+<!-- <h1> Time pass </h1> -->
+</body>
+</html>
