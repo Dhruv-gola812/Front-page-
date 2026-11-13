@@ -110,6 +110,13 @@
       padding-top: 2px;
     }
 
+    .storage-status {
+      grid-column: 1 / -1;
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
     button {
       min-height: 42px;
       padding: 9px 18px;
@@ -162,7 +169,7 @@
     .text {
       position: absolute;
       font-size: 28px;
-      font-weight: bold;
+      font-weight: 800;
       font-family: inherit;
       color: #000;
     }
@@ -259,6 +266,7 @@
         <select id="labPage" aria-label="Select lab page">
           <option value="wt">WT LAB</option>
           <option value="daa">DAA LAB</option>
+          <option value="dbms">DBMS LAB</option>
         </select>
       </div>
       <div class="field">
@@ -276,7 +284,9 @@
       <div class="actions">
         <button class="secondary" type="button" onclick="loadPreview()">Preview</button>
         <button type="button" onclick="generatePDF()">Download PDF</button>
+        <button class="secondary" type="button" onclick="clearSavedDetails()">Clear saved details</button>
       </div>
+      <p class="storage-status" id="storage-status" aria-live="polite"></p>
     </section>
 
     <section class="preview-section" aria-label="Front page preview">
@@ -308,7 +318,25 @@
 const templates = {
   wt: "wt-template.jpg",
   daa: "daa-template.jpg",
-  dbms: "dbms-template.jpg"
+  dbms: "dbms-template.png"
+};
+// Adjust top (vertical) and left (horizontal) values in pixels for each lab.
+const textPositions = {
+  wt: [
+    { top: 619, left: 210 },
+    { top: 667, left: 210 },
+    { top: 715, left: 210 }
+  ],
+  daa: [
+    { top: 619, left: 210 },
+    { top: 667, left: 210 },
+    { top: 715, left: 210 }
+  ],
+  dbms: [
+    { top: 760, left: 165 },
+    { top: 810, left: 195 },
+    { top: 858, left: 190 }
+  ]
 };
 const labPage = document.getElementById("labPage");
 const image = document.getElementById("template-image");
@@ -316,8 +344,74 @@ const page = document.getElementById("page");
 const previewCanvas = document.getElementById("preview-canvas");
 const previewViewport = document.querySelector(".preview-viewport");
 const previewStatus = document.getElementById("preview-status");
+const storageStatus = document.getElementById("storage-status");
+const detailFields = {
+  name: document.getElementById("name"),
+  roll: document.getElementById("roll"),
+  section: document.getElementById("section")
+};
+const savedDetailsKey = "frontPageMaker.details";
 let loadedTemplate = "";
 let previewScale = 1;
+
+function saveDetails() {
+  try {
+    localStorage.setItem(savedDetailsKey, JSON.stringify({
+      name: detailFields.name.value,
+      roll: detailFields.roll.value,
+      section: detailFields.section.value
+    }));
+    storageStatus.innerText = "Your details are saved in this browser.";
+  } catch (error) {
+    storageStatus.innerText = "Could not save details in this browser. Check its storage settings.";
+  }
+}
+
+function restoreDetails() {
+  try {
+    const savedDetails = localStorage.getItem(savedDetailsKey);
+    if (!savedDetails) {
+      storageStatus.innerText = "Your details will be saved in this browser as you type.";
+      return;
+    }
+
+    const details = JSON.parse(savedDetails);
+    if (!details || typeof details.name !== "string" ||
+        typeof details.roll !== "string" || typeof details.section !== "string") {
+      throw new Error("Saved details have an unexpected format.");
+    }
+
+    detailFields.name.value = details.name;
+    detailFields.roll.value = details.roll;
+    detailFields.section.value = details.section;
+    storageStatus.innerText = "Saved details restored from this browser.";
+  } catch (error) {
+    storageStatus.innerText = "Could not read saved details. Check this browser's storage settings.";
+  }
+}
+
+function clearSavedDetails() {
+  detailFields.name.value = "";
+  detailFields.roll.value = "";
+  detailFields.section.value = "";
+  updatePreviewText();
+
+  try {
+    localStorage.removeItem(savedDetailsKey);
+    storageStatus.innerText = "Saved details cleared from this browser.";
+  } catch (error) {
+    storageStatus.innerText = "Could not clear saved details. Check this browser's storage settings.";
+  }
+}
+
+function updateTextPositions() {
+  const positions = textPositions[labPage.value];
+  ["t_name", "t_roll", "t_section"].forEach((id, index) => {
+    const text = document.getElementById(id);
+    text.style.top = positions[index].top + "px";
+    text.style.left = positions[index].left + "px";
+  });
+}
 
 function resizePreview() {
   const availableWidth = Math.max(1, previewViewport.clientWidth - 28);
@@ -339,6 +433,7 @@ function updatePreviewText() {
 function loadPreview() {
   const template = templates[labPage.value];
   loadedTemplate = "";
+  updateTextPositions();
   page.style.display = "none";
   resizePreview();
   previewStatus.innerText = "Loading " + template + "...";
@@ -395,9 +490,13 @@ function generatePDF() {
   ).then(restorePreview, restorePreview);
 }
 
-document.getElementById("name").addEventListener("input", updatePreviewText);
-document.getElementById("roll").addEventListener("input", updatePreviewText);
-document.getElementById("section").addEventListener("input", updatePreviewText);
+Object.values(detailFields).forEach((field) => {
+  field.addEventListener("input", () => {
+    updatePreviewText();
+    saveDetails();
+  });
+});
+restoreDetails();
 window.addEventListener("resize", resizePreview);
 resizePreview();
 previewStatus.innerText = "Enter your details, then click Preview.";
